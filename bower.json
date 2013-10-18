@@ -1,0 +1,21 @@
+{
+  "name": "3xiao",
+  "version": "0.0.1",
+  "authors": [
+    "Cong Liu <leehom2001@gmail.com>"
+  ],
+  "main": "index.html",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "~0.0.20131010",
+    "q": "~0.9.7"
+  }
+}

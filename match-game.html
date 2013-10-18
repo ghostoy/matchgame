@@ -1,0 +1,258 @@
+<polymer-element name="match-game" attributes="rows columns size speed">
+<template>
+	<style>
+	@host {
+		:scope {
+			display: block;
+			overflow: hidden;
+			position: relative;
+		}
+	}
+
+	#container.fast > match-cell {
+		transition: all 0.5s ease-in-out;
+	}
+
+	#container.normal > match-cell {
+		transition: all 1s ease-in-out;
+	}
+
+	#container.slow > match-cell {
+		transition: all 1.5s ease-in-out;
+	}
+	</style>
+	<div id="container"></div>
+</template>
+<script>
+Polymer('match-game', {
+	rows: 10,
+	columns: 10,
+	size: 4,
+	speed: 'normal',
+
+	speedChanged: function() {
+		this.className = this.speed;
+	},
+
+	created: function() {
+		// create cells
+		this.reset();
+		this.fill();
+		// bind events
+		this.bind();
+	},
+
+	bind: function() {
+		var that = this;
+		var point;
+		var down = function(evt) {
+			point = that.shadowRoot.elementFromPoint(evt.clientX, evt.clientY);
+		};
+		var up = function(evt) {
+			var target = that.shadowRoot.elementFromPoint(evt.clientX, evt.clientY);
+			that.swap(point, target);
+			point = null;
+		};
+		this.$.container.addEventListener('pointerdown', down, false);
+		this.$.container.addEventListener('pointerup', up, false);
+	},
+
+	destroyList: function() {
+		var hlist = []; // horizontal list
+		var vlist = []; // vertical list
+		var list = []; // list of all
+
+		var cells = this.cells;
+		var columns = this.columns;
+		var rows = this.rows;
+		for(var c = 0; c < columns; c++) {
+			var h = hlist[c] = new Array(rows);
+			var v = vlist[c] = new Array(rows);
+			var column = cells[c];
+			for(var r = 0; r < rows; r++) {
+				var left = c > 0 ? cells[c-1][r+rows] : null;
+				var up = r > 0 ? column[r-1+rows] : null;
+				var cell = column[r+rows];
+				if (left && left.equals(cell)) {
+					(h[r] = hlist[c-1][r]).push(cell);
+				} else {
+					list.push(h[r] = [cell]);
+				}
+				if (up && up.equals(cell)) {
+					(v[r] = vlist[c][r-1]).push(cell);
+				} else {
+					list.push(v[r] = [cell]);
+				}
+			}
+		}
+
+		var set = new Set();
+		var result = [];
+		for(var i = 0; i < list.length; i++) {
+			var l = list[i];
+			if (l.length >= 3) {
+				for(var j = 0; j < l.length; j++) {
+					var cell = l[j];
+					if (!set.has(cell)) {
+						set.add(cell);
+						result.push(cell);
+					}
+				}
+			}
+		}
+		
+		return result;
+	},
+
+	destroy: function(list) {
+		list = list || this.destroyList();
+		var cells = this.cells;
+
+		var defer = Q.defer(), animatePromise;
+		for(var i = 0; i < list.length; i++) {
+			var cell = list[i];
+			animatePromise = cell.destroy();
+			delete cells[cell.column][cell.row];
+		}
+
+		if (animatePromise) {
+			animatePromise.then(function() {
+				defer.resolve(true);
+			});
+		} else {
+			defer.resolve(false);
+		}
+
+		var that = this;
+		return defer.promise.then(function(destroyed){
+			return destroyed && that.fill();
+		});
+	},
+
+	blockFill: function(time) {
+		if (!this.signal) this;
+		clearTimeout(this.timer);
+		this.timer = setTimeout(function() {
+
+		}, time);
+	},
+
+	swap: function(cell1, cell2, revert) {
+		var r1 = cell1.row, c1 = cell1.column,
+			r2 = cell2.row, c2 = cell2.column;
+		var diff = r2 - r1 + c2 - c1;
+
+		if (diff === 1 || diff === -1) {
+
+			var cells = this.cells;
+			cells[c1][r1] = cell2;
+			cells[c2][r2] = cell1;
+			cell1.row = r2;
+			cell1.column = c2;
+			cell2.row = r1;
+			cell2.column = c1;
+
+			var defer = Q.defer();
+			cell1.addEventListener('transitionend', function once(evt){
+				evt.target.removeEventListener('transitionend', once);
+				defer.resolve(false);
+			});
+
+			var that = this;
+			if (revert) {
+				return defer.promise;
+			} else {
+				return defer.promise.then(function(){
+					var list = that.destroyList();
+					if (list.length) {
+						return that.destroy(list).then(function(){return true;});
+					} else {
+						return that.swap(cell1, cell2, true);
+					}
+				});
+			}
+		} else {
+			return Q(false);
+		}
+	},
+
+	reset: function() {
+		var cells = this.cells = [];
+		for(var c = 0; c < this.columns; c++) {
+			cells[c] = new Array(this.rows * 2);
+		}
+		this.$.container.className = this.speed;
+	},
+
+	fill: function() {
+		// prepend cells
+		var cells = this.cells;
+		var rows = this.rows;
+		var columns = this.columns;
+		var container = this.$.container;
+
+		for(var c = 0; c < columns; c++) {
+			var column = cells[c];
+			var fillrow = rows;
+			for(var r = rows * 2 - 1; r >= rows; r--) {
+				var cell = column[r];
+				if (!cell) {
+					fillrow--;
+					cell = document.createElement('match-cell');
+					var attrs = {
+						// 'touch-action'	: 'none',
+						rows	: rows,
+						columns	: columns,
+						row 	: fillrow,
+						column 	: c,
+						color	: Math.floor(Math.random() * this.size)
+					};
+					for(var k in attrs) {
+						cell.setAttribute(k, attrs[k]);
+					}
+					cell.className = 'noanimate';
+					container.appendChild(cell);
+					column[fillrow] = cell;
+				}
+			}
+		}
+
+		// falls
+		var defer = Q.defer();
+		setTimeout(function() {
+			var cell, lastCell;
+
+			for(var c = 0; c < columns; c++) {
+				var column = cells[c];
+				var fillrow = 2 * rows;
+				for(var r = rows * 2 - 1; r >= 0 && fillrow >= rows; r--) {
+					cell = column[r];
+					if (cell) {
+						fillrow--;
+						if (r !== fillrow) {
+							delete column[r];
+							cell.className = '';
+							column[fillrow] = cell;
+							cell.setAttribute('row', fillrow);
+							lastCell = cell;
+						}
+					}
+				}
+			}
+			if (lastCell) {
+				lastCell.addEventListener('transitionend', function once(evt) {
+					evt.target.removeEventListener('transitionend', once);
+					defer.resolve();
+				});
+			} else {
+				console.log('no cell animation');
+				defer.resolve();
+			}
+		});
+
+		return defer.promise
+			.then(this.destroy.bind(this));
+	}
+})
+</script>
+</polymer-element>

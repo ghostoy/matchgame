@@ -1,0 +1,83 @@
+<polymer-element name="match-cell" attributes="color rows columns row column">
+<template>
+	<style>
+	@host {
+		:scope {
+			position: absolute;
+		}
+
+		:scope.destroyed {
+			-webkit-transform: scale(2);
+			opacity: 0;
+		}
+
+		:scope.noanimate {
+			transition: none;
+		}
+	}
+	</style>
+</template>
+<script>
+(function() {
+	var COLORS = ['yellow', 'green', 'blue', 'red', 'orange', 'pink', 'purple'];
+
+	Polymer('match-cell', {
+		row 	: 0,
+		column 	: 0,
+		rows 	: 10,
+		columns : 10,
+		color 	: 'black',
+		created : function() {
+			var css = {
+				width 	: (100 / this.columns) + '%',
+				height 	: (100 / this.rows) + '%',
+				top		: (100 * (this.row - this.rows) / this.rows) + '%',
+				left	: (100 * this.column / this.columns) + '%',
+				backgroundColor 	: this.color
+			};
+			for(var k in css) {
+				this.style[k] = css[k];
+			}
+		},
+		attributeChanged: function(attr) {
+			switch(attr) {
+				case 'columns':
+				this.style.width = (100 / this.columns) + '%';
+				break;
+				case 'rows':
+				this.style.height = (100 / this.rows) + '%';
+				break;
+				case 'color':
+				this.style.backgroundColor = COLORS[this.color % COLORS.length];
+				break;
+				case 'row':
+				this.style.top = ((this.row - this.rows) * 100 / this.rows) + '%';
+				break;
+				case 'column':
+				this.style.left = (100 * this.column / this.columns) + '%';
+				break;
+			}
+		},
+		equals: function(cell) {
+			return this.color === cell.color;
+		},
+		destroy: function() {
+			var defer = Q.defer();
+			if (this.destroyed) {
+				defer.resolve();
+				return defer.promise;
+			}
+
+			this.destroyed = true;
+			this.className += ' destroyed';
+			this.addEventListener('transitionend', function once(evt) {
+				evt.target.parentNode.removeChild(evt.target);
+				evt.target.removeEventListener('transitionend', once);
+				defer.resolve();
+			});
+			return defer.promise;
+		}
+	})
+}())
+</script>
+</polymer-element>
