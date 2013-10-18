@@ -145,16 +145,13 @@ Polymer('match-game', {
 
 		var that = this;
 		return defer.promise.then(function(destroyed){
-			return destroyed && that.fill();
+			if (destroyed) {
+				that.fire('destroy', list);
+				return that.fill();
+			} else {
+				return false;
+			}
 		});
-	},
-
-	blockFill: function(time) {
-		if (!this.signal) this;
-		clearTimeout(this.timer);
-		this.timer = setTimeout(function() {
-
-		}, time);
 	},
 
 	swap: function(cell1, cell2, revert) {
