@@ -5,8 +5,13 @@
 		:scope {
 			display: block;
 			overflow: hidden;
-			position: relative;
 		}
+	}
+
+	#container {
+		position: relative;
+		width: 100%;
+		height: 100%;
 	}
 
 	#container.fast > match-cell {
@@ -46,15 +51,30 @@ Polymer('match-game', {
 		var that = this;
 		var point;
 		var down = function(evt) {
-			point = that.shadowRoot.elementFromPoint(evt.clientX, evt.clientY);
+			evt.preventDefault();
+			point = evt.target;//that.shadowRoot.elementFromPoint(evt.clientX, evt.clientY);
+		};
+		var move = function(evt) {
+			evt.preventDefault();
 		};
 		var up = function(evt) {
-			var target = that.shadowRoot.elementFromPoint(evt.clientX, evt.clientY);
+			evt.preventDefault();
+			if (evt.changedTouches) {
+				var x = evt.changedTouches[0].clientX,
+					y = evt.changedTouches[0].clientY;
+			} else {
+				var x = evt.clientX,
+					y = evt.clientY;
+			}
+			var target = that.shadowRoot.elementFromPoint(x, y);
 			that.swap(point, target);
 			point = null;
 		};
-		this.$.container.addEventListener('pointerdown', down, false);
-		this.$.container.addEventListener('pointerup', up, false);
+		this.$.container.addEventListener('touchstart', down, false);
+		this.$.container.addEventListener('touchend', up, false);
+		this.$.container.addEventListener('touchmove', move, false);
+		this.$.container.addEventListener('mousedown', down, false);
+		this.$.container.addEventListener('mouseup', up, false);
 	},
 
 	destroyList: function() {
