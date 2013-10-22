@@ -14,6 +14,10 @@
 		height: 100%;
 	}
 
+	#container.extreme-fast > match-cell {
+		transition: all 0.25s ease-in-out;
+	}
+
 	#container.fast > match-cell {
 		transition: all 0.5s ease-in-out;
 	}
@@ -25,6 +29,7 @@
 	#container.slow > match-cell {
 		transition: all 1.5s ease-in-out;
 	}
+
 	</style>
 	<div id="container"></div>
 </template>
@@ -67,7 +72,9 @@ Polymer('match-game', {
 					y = evt.clientY;
 			}
 			var target = that.shadowRoot.elementFromPoint(x, y);
-			that.swap(point, target);
+			that.swap(point, target).done(function(){
+				// console.log('swap');
+			});
 			point = null;
 		};
 		this.$.container.addEventListener('touchstart', down, false);
@@ -93,6 +100,8 @@ Polymer('match-game', {
 				var left = c > 0 ? cells[c-1][r+rows] : null;
 				var up = r > 0 ? column[r-1+rows] : null;
 				var cell = column[r+rows];
+				if (!cell) continue;
+
 				if (left && left.equals(cell)) {
 					(h[r] = hlist[c-1][r]).push(cell);
 				} else {
@@ -124,7 +133,7 @@ Polymer('match-game', {
 		return result;
 	},
 
-	destroy: function(list) {
+	destroy: function(list, timer) {
 		list = list || this.destroyList();
 		var cells = this.cells;
 
@@ -145,16 +154,15 @@ Polymer('match-game', {
 
 		var that = this;
 		return defer.promise.then(function(destroyed){
-			return destroyed && that.fill();
+			if (destroyed) {
+				that.fire('destroy', list);
+				if (timer) that.pendingFill(timer);
+				else that.fill();
+				return false;
+			} else {
+				return false;
+			}
 		});
-	},
-
-	blockFill: function(time) {
-		if (!this.signal) this;
-		clearTimeout(this.timer);
-		this.timer = setTimeout(function() {
-
-		}, time);
 	},
 
 	swap: function(cell1, cell2, revert) {
@@ -185,7 +193,7 @@ Polymer('match-game', {
 				return defer.promise.then(function(){
 					var list = that.destroyList();
 					if (list.length) {
-						return that.destroy(list).then(function(){return true;});
+						return that.destroy(list, 1000).then(function(){return true;});
 					} else {
 						return that.swap(cell1, cell2, true);
 					}
@@ -204,8 +212,19 @@ Polymer('match-game', {
 		this.$.container.className = this.speed;
 	},
 
+	pendingFill: function(timer) {
+		if (this._fillTimer) {
+			clearTimeout(this._fillTimer);
+		}
+
+		this._fillTimer = setTimeout(this.fill.bind(this), timer);
+
+	},
+
 	fill: function() {
-		// prepend cells
+		delete this._fillTimer;
+
+		// prepare cells
 		var cells = this.cells;
 		var rows = this.rows;
 		var columns = this.columns;
