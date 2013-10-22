@@ -165,6 +165,72 @@ Polymer('match-game', {
 		});
 	},
 
+	tip: function() {
+		var left = [
+				[0, -1],
+				[0,	-2,	0,	-3],
+				[-1,-1,	-2,	-1],
+				[-1,-1,	1,	-1],
+				[1,	-1,	2,	-1]
+			],
+			right = [
+				[0, 1],
+				[0,	2,	0,	3],
+				[-1,1,	-2,	1],
+				[-1,1,	1,	1],
+				[1,	1,	2,	1]
+			],
+			up = [
+				[-1, 0],
+				[-2,0,	-3,	0],
+				[-1,-1,	-1,	-2],
+				[-1,-1,	-1,	1],
+				[-1,1,	-1,	2]
+			],
+			down = [
+				[1,	0],
+				[2,	0,	3,	0],
+				[1,	-1,	1,	-2],
+				[1,	-1,	1,	1],
+				[1,	1,	1,	2]
+			];
+		var list = [left, right, up, down];
+		var cells = this.cells;
+		var rows = this.rows;
+		var columns = this.columns;
+
+		for(var c = 0; c < this.columns; c++) {
+			var column = cells[c];
+			for(var r = 0; r < this.rows; r++) {
+				var a_cell = column[r + rows];
+				if (!a_cell) continue;
+
+				for(var i = 0; i < list.length; i++) {
+					var direction = list[i];
+					var b_column = cells[c+direction[0][1]];
+					var b_cell = b_column && b_column[r+direction[0][0]+rows];
+					if (!b_cell || a_cell.equals(b_cell)) continue;
+
+					for(var j = 1; j < direction.length; j++) {
+						var d = direction[j];
+						var c_column = cells[c + d[1]],
+							d_column = cells[c + d[3]];
+
+						var c_cell = c_column && c_column[r+d[0]+rows],
+							d_cell = d_column && d_column[r+d[2]+rows];
+
+						if (c_cell && d_cell && a_cell.equals(c_cell) && a_cell.equals(d_cell)) {
+							return [a_cell, c_cell, d_cell];
+						}
+					}
+				}
+				
+			}
+		}
+
+		return false;
+	},
+
 	swap: function(cell1, cell2, revert) {
 		var r1 = cell1.row, c1 = cell1.column,
 			r2 = cell2.row, c2 = cell2.column;

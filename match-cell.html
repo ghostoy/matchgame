@@ -19,21 +19,21 @@
 </template>
 <script>
 (function() {
-	var COLORS = ['yellow', 'green', 'blue', 'red', 'orange', 'pink', 'purple'];
+	var COLORS = ['yellow', 'green', 'blue', 'red', 'orange', 'pink', 'purple', 'black', 'gray'];
 
 	Polymer('match-cell', {
 		row 	: 0,
 		column 	: 0,
 		rows 	: 10,
 		columns : 10,
-		color 	: 'black',
+		color 	: 0,
 		created : function() {
 			var css = {
 				width 	: (100 / this.columns) + '%',
 				height 	: (100 / this.rows) + '%',
 				top		: (100 * (this.row - this.rows) / this.rows) + '%',
 				left	: (100 * this.column / this.columns) + '%',
-				backgroundColor 	: this.color
+				backgroundColor 	: COLORS[this.color]
 			};
 			for(var k in css) {
 				this.style[k] = css[k];
@@ -48,7 +48,7 @@
 				this.style.height = (100 / this.rows) + '%';
 				break;
 				case 'color':
-				this.style.backgroundColor = COLORS[this.color % COLORS.length];
+				this.style.backgroundColor = COLORS[this.color];
 				break;
 				case 'row':
 				this.style.top = ((this.row - this.rows) * 100 / this.rows) + '%';
